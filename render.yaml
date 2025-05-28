@@ -1,0 +1,11 @@
+
+services:
+  - type: cron
+    name: webbia-scraper
+    schedule: "@daily"
+    runtime: python
+    buildCommand: ""
+    startCommand: "python main.py"
+    envVars:
+      - key: API_KEY
+        value: YOUR_API_KEY_HERE
