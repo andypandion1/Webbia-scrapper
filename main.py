@@ -1,3 +1,4 @@
+
 import os, time, requests
 from bs4 import BeautifulSoup
 import gspread
@@ -63,28 +64,22 @@ def full_scrape(query):
             if pid:
                 time.sleep(1.5)
                 d = get_place_details(pid)
-                print(f"Business: {d.get('name')} - Website: {d.get('website')} - URL: {d.get('url')}")      
                 fallback = fallback_web_check(d.get("name", ""), query.split(" in ")[-1])
                 print(f"{d.get('name')} fallback: {fallback}")
-                if fallback in ["Facebook", "Instagram", "GMB"]:
-                    print("✅ Qualified lead found!")
-                    found.append([
-                        d.get("name"),
-                        d.get("formatted_address"),
-                        d.get("url"),
-                        d.get("website") or "N/A",
-                        fallback
-                    ])
-                if fallback != "None":
-                    print("✅ Logging all fallback leads for testing")
-                    found.append([...])
-            
-            if "next_page_token" in data:
-                time.sleep(2)
-                params = {"pagetoken": data["next_page_token"], "key": API_KEY}
-            else:
-                break
-            return found
+                found.append([
+                    d.get("name"),
+                    d.get("formatted_address"),
+                    d.get("url"),
+                    d.get("website") or "N/A",
+                    fallback
+                ])
+
+        if "next_page_token" in data:
+            time.sleep(2)
+            params = {"pagetoken": data["next_page_token"], "key": API_KEY}
+        else:
+            break
+    return found
 
 def push_to_sheet(data):
     if data:
