@@ -16,7 +16,16 @@ DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 QUERIES = [
     "Plumbers in Melbourne", "Electricians in Brisbane", "Mechanics in Perth", "Landscapers in Adelaide",
     "Hair salons in Cairns", "Massage therapists in Darwin", "Mobile dog groomers in Sydney",
-    "Roofing companies in Newcastle", "Handymen in Geelong", "Tutors in Wollongong"
+    "Roofing companies in Newcastle", "Handymen in Geelong", "Tutors in Wollongong", "Tree services in Mildura",
+    "Pet groomers in Alice Springs",
+    "Mobile mechanics in Dubbo",
+    "Tutors in Karratha",
+    "Locksmiths in Broken Hill",
+    "Cake shops in Whyalla",
+    "Lawn mowing services in Burnie",
+    "Fencing contractors in Orange",
+    "Photographers in Armidale",
+    "Cleaning services in Wagga Wagga"
 ]
 
 def fallback_web_check(biz_name, city):
@@ -57,11 +66,15 @@ def full_scrape(query):
             if pid:
                 time.sleep(1.5)
                 d = get_place_details(pid)
-                if not d.get("website"):
-                    fallback = fallback_web_check(d.get("name", ""), query.split(" in ")[-1])
-                    found.append([
-                        d.get("name"), d.get("formatted_address"), d.get("url"), "N/A", fallback
-                    ])
+                fallback = fallback_web_check(d.get("name", ""), query.split(" in ")[-1])
+            if fallback in ["Facebook", "Instagram", "GMB"]:
+                found.append([
+                    d.get("name"),
+                    d.get("formatted_address"),
+                    d.get("url"),
+                    d.get("website") or "N/A",
+                    fallback
+                ])
 
         if "next_page_token" in data:
             time.sleep(2)
