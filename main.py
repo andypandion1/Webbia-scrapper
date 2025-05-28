@@ -1,21 +1,47 @@
+import os, time, requests, csv
+from bs4 import BeautifulSoup
+import gspread
+from google.oauth2.service_account import Credentials
 
-import requests, time, csv
-import os
+# Setup Google Sheets
+SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+creds = Credentials.from_service_account_file("webbia-scraper-49b803e16174.json", scopes=SCOPES)
+gc = gspread.authorize(creds)
+sheet = gc.open_by_key("1-KrRAjxeR_QJiklXvc9cHLrpCDsb-u3BpP2l7rzdCIU").sheet1
 
 API_KEY = os.getenv("API_KEY")
-
 TEXT_SEARCH_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 
-QUERY = "Cafes in Melbourne"
+QUERIES = [
+    "Plumbers in Melbourne", "Electricians in Brisbane", "Mechanics in Perth", "Landscapers in Adelaide",
+    "Hair salons in Cairns", "Massage therapists in Darwin", "Mobile dog groomers in Sydney",
+    "Roofing companies in Newcastle", "Handymen in Geelong", "Tutors in Wollongong"
+]
+
+def fallback_web_check(biz_name, city):
+    try:
+        query = f"{biz_name} {city}".replace(" ", "+")
+        resp = requests.get(f"https://www.google.com/search?q={query}", headers={
+            "User-Agent": "Mozilla/5.0"
+        })
+        soup = BeautifulSoup(resp.text, "html.parser")
+        links = [a.get("href") for a in soup.find_all("a", href=True)]
+        score = "None"
+        for link in links:
+            if "facebook.com" in link:
+                score = "Facebook"
+            elif "instagram.com" in link and score != "Facebook":
+                score = "Instagram"
+            elif "google.com/maps" in link and score == "None":
+                score = "GMB"
+        return score
+    except:
+        return "Unknown"
 
 def get_place_details(place_id):
-    params = {
-        "place_id": place_id,
-        "fields": "name,formatted_address,website,url",
-        "key": API_KEY
-    }
-    res = requests.get(DETAILS_URL, params=details_params)
+    params = {"place_id": place_id, "fields": "name,formatted_address,website,url", "key": API_KEY}
+    res = requests.get(DETAILS_URL, params=params)
     return res.json().get("result", {})
 
 def full_scrape(query):
@@ -32,28 +58,25 @@ def full_scrape(query):
                 time.sleep(1.5)
                 d = get_place_details(pid)
                 if not d.get("website"):
-                    found.append({
-                        "name": d.get("name"),
-                        "address": d.get("formatted_address"),
-                        "maps_url": d.get("url"),
-                        "website": "N/A"
-                    })
+                    fallback = fallback_web_check(d.get("name", ""), query.split(" in ")[-1])
+                    found.append([
+                        d.get("name"), d.get("formatted_address"), d.get("url"), "N/A", fallback
+                    ])
 
         if "next_page_token" in data:
             time.sleep(2)
             params = {"pagetoken": data["next_page_token"], "key": API_KEY}
         else:
             break
-
     return found
 
-def save_to_csv(data, filename="places.csv"):
-    with open(filename, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=["name", "address", "maps_url", "website"])
-        writer.writeheader()
-        writer.writerows(data)
+def push_to_sheet(data):
+    if data:
+        sheet.append_rows(data, value_input_option="RAW")
 
 if __name__ == "__main__":
-    results = full_scrape(QUERY)
-    save_to_csv(results)
-    print(f"Scraped and saved {len(results)} businesses.")
+    for q in QUERIES:
+        print("Scraping:", q)
+        data = full_scrape(q)
+        push_to_sheet(data)
+        print(f"Pushed {len(data)} leads from: {q}")
