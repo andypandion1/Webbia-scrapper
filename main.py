@@ -1,4 +1,4 @@
-import os, time, requests, csv
+import os, time, requests
 from bs4 import BeautifulSoup
 import gspread
 from google.oauth2.service_account import Credentials
@@ -16,16 +16,7 @@ DETAILS_URL = "https://maps.googleapis.com/maps/api/place/details/json"
 QUERIES = [
     "Plumbers in Melbourne", "Electricians in Brisbane", "Mechanics in Perth", "Landscapers in Adelaide",
     "Hair salons in Cairns", "Massage therapists in Darwin", "Mobile dog groomers in Sydney",
-    "Roofing companies in Newcastle", "Handymen in Geelong", "Tutors in Wollongong", "Tree services in Mildura",
-    "Pet groomers in Alice Springs",
-    "Mobile mechanics in Dubbo",
-    "Tutors in Karratha",
-    "Locksmiths in Broken Hill",
-    "Cake shops in Whyalla",
-    "Lawn mowing services in Burnie",
-    "Fencing contractors in Orange",
-    "Photographers in Armidale",
-    "Cleaning services in Wagga Wagga"
+    "Roofing companies in Newcastle", "Handymen in Geelong", "Tutors in Wollongong"
 ]
 
 def fallback_web_check(biz_name, city):
@@ -36,8 +27,13 @@ def fallback_web_check(biz_name, city):
         })
         soup = BeautifulSoup(resp.text, "html.parser")
         links = [a.get("href") for a in soup.find_all("a", href=True)]
-        score = "None"
+        clean_links = []
         for link in links:
+            if "/url?q=" in link:
+                clean_links.append(link.split("/url?q=")[1].split("&")[0])
+
+        score = "None"
+        for link in clean_links:
             if "facebook.com" in link:
                 score = "Facebook"
             elif "instagram.com" in link and score != "Facebook":
@@ -45,7 +41,8 @@ def fallback_web_check(biz_name, city):
             elif "google.com/maps" in link and score == "None":
                 score = "GMB"
         return score
-    except:
+    except Exception as e:
+        print("Fallback error:", e)
         return "Unknown"
 
 def get_place_details(place_id):
@@ -67,6 +64,7 @@ def full_scrape(query):
                 time.sleep(1.5)
                 d = get_place_details(pid)
                 fallback = fallback_web_check(d.get("name", ""), query.split(" in ")[-1])
+                print(f"{d.get('name')} fallback: {fallback}")
                 if fallback in ["Facebook", "Instagram", "GMB"]:
                     found.append([
                         d.get("name"),
