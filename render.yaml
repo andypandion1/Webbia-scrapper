@@ -1,7 +1,7 @@
 services:
   - type: cron
-    name: webbia-scraper
-    schedule: "@daily"
+    name: webbia-scraper-v2
+    schedule: "@hourly"
     runtime: python
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python main.py"
