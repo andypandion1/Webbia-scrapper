@@ -4,7 +4,7 @@ services:
     name: webbia-scraper
     schedule: "@daily"
     runtime: python
-    buildCommand: ""
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "python main.py"
     envVars:
       - key: API_KEY
