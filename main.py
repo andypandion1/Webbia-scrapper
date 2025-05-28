@@ -67,14 +67,14 @@ def full_scrape(query):
                 time.sleep(1.5)
                 d = get_place_details(pid)
                 fallback = fallback_web_check(d.get("name", ""), query.split(" in ")[-1])
-            if fallback in ["Facebook", "Instagram", "GMB"]:
-                found.append([
-                    d.get("name"),
-                    d.get("formatted_address"),
-                    d.get("url"),
-                    d.get("website") or "N/A",
-                    fallback
-                ])
+                if fallback in ["Facebook", "Instagram", "GMB"]:
+                    found.append([
+                        d.get("name"),
+                        d.get("formatted_address"),
+                        d.get("url"),
+                        d.get("website") or "N/A",
+                        fallback
+                    ])
 
         if "next_page_token" in data:
             time.sleep(2)
